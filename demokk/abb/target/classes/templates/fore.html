@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <!-- 通过CDN引入Vue.js -->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <!-- 通过CDN引入axios -->
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+<div id="app">
+    <table border="1" cellspacing="0" cellpadding="20">
+        <tr>
+            <th>编号</th>
+            <th>姓名</th>
+            <th>性别</th>
+            <th>年级</th>
+            <th>操作</th>
+        </tr>
+        <template v-for="student in students">
+            <tr>
+                <td>{{student.id}}</td>
+                <td>{{student.name}}</td>
+                <td>{{student.sex}}</td>
+                <td>{{student.gradeId}}</td>
+                <td>
+                    <a href="#" @click="Delete(student.id)">删除</a>
+                    <a href="#" @click="Edit(student)">编辑</a>
+                </td>
+            </tr>
+        </template>
+        <template>
+            <tr>
+                <td><input type="text" placeholder="不需要自己填充" readonly="readonly" v-model="student.id" /></td>
+                <td><input type="text" placeholder="请输入用户名" v-model="student.name" /></td>
+                <td><input type="text" placeholder="请输入性别" v-model="student.sex" /></td>
+                <td><input type="text" placeholder="请输入年级" v-model="student.gradeId" /></td>
+                <td>
+                    <button type="button" @click="Save">保存</button>
+                </td>
+            </tr>
+        </template>
+    </table>
+    <a href="#" @click="findAll(1)">首页</a>
+    <a href="#" @click="findAll(pageNum-1)">上一页</a>
+    <a href="#" @click="findAll(pageNum+1)">下一页</a>
+    <a href="#" @click="findAll(count)">尾页</a>
+
+
+
+</div>
+<script type="text/javascript">
+    var app = new Vue({
+        el: '#app',
+        data: {
+            student: {
+                id: '',
+                name: '',
+                sex: '',
+                gradeId: ''
+            },
+            students: [],
+            pageNum:0,
+            count:0
+        },
+        methods: {
+            findAll: function(pageNums) {//查询
+                var _this = this;
+                axios.get('http://localhost:8080/sell',{
+                    params: {
+                        pageNum: pageNums
+                    }
+                })
+                    .then(function(response) {
+                        console.log(response);
+                        _this.students = response.data.data.content;
+                        _this.count=response.data.data.totalPages;
+                        _this.pageNum=response.data.pageNum
+                    })
+                    .catch(function(error) {
+                        console.log(error);
+                    });
+            },
+            Save: function() {
+                var _this = this;
+                var student = JSON.stringify(_this.student)
+                if (student.id != null && student.id != '') { //修改
+                    axios.put('http://localhost:8080/upd', student, {
+                        headers: {
+                            "Content-Type": "application/json;charset=utf-8" //头部信息
+                        }
+                    })
+                        .then(function(response) {
+                            //保存完之后查询所有的信息
+                            _this.student.name = null;
+                            _this.student.sex = null;
+                            _this.student.gradeId = null;
+                            _this.findAll();
+                        })
+                        .catch(function(error) {
+                            console.log(error);
+                        });
+                } else { //新增
+                    axios.post('/add', student, {
+                        headers: {
+                            "Content-Type": "application/json;charset=utf-8" //头部信息
+                        }
+                    })
+                        .then(function(response) {
+                            //保存完之后查询所有的信息
+                            if (_this.student.id != null) {
+                                _this.student.id = null;
+                            }
+                            _this.student.name = null;
+                            _this.student.sex = null;
+                            _this.student.gradeId = null;
+                            _this.findAll();
+                        })
+                        .catch(function(error) {
+                            console.log(error);
+                        });
+                }
+            },
+            Delete: function(sid) {//删除
+                var _this = this;
+                axios.delete('http://localhost:8080/del', {
+                    params: {
+                        id: sid
+                    }
+                })
+                    .then(function(response) {
+                        _this.findAll();
+                    })
+                    .catch(function(error) {
+                        console.log(error);
+                    });
+            },
+            Edit: function(student) {
+                this.student = student;
+            }
+        },
+        created: function() { //创建vue对象的时候自动调用查询所有的方法
+            this.findAll();
+        }
+    })
+</script>
+</body>
+</html>
